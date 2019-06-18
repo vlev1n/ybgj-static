@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1" />
+    <meta charset="utf-8">
+    <title>研究成果</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      #root {
+        display: grid;
+        grid-auto-flow: column;
+        height: 100%;
+      }
+
+      nav {
+        display: grid;
+        grid-gap: 1rem;
+        padding: 1rem;
+        justify-content: center;
+        align-items: center;
+      }
+
+      nav>span {
+        padding: .5rem;
+        background: mediumseagreen;
+        border-radius: .25rem;
+        box-shadow: 2px 2px 2px 1px rgba(46, 139, 87, 0.5);
+        color: white;
+        cursor: pointer;
+      }
+
+      main {
+        height: 100%;
+      }
+
+      button {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+      }
+      
+      .loading {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <nav></nav>
+      <main id="pdf"></main>
+      <button>返回目录</button>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.2.2/pdf.min.js"></script>
+    <script>
+      // 指定worker目录
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.2.2/pdf.worker.min.js'
+      // 声明文件列表。文件列表可通过papers文件夹中txt中记录的命令生成
+      const files = ["肌内效贴在中枢神经系统损伤康复中的应用进展_姜文君.pdf", "肌内效贴在运动损伤康复中的应用进展_祁奇.pdf", "肌内效贴在运动损伤防治中的应用及展望_傅维杰.pdf",
+        "肌内效贴对人体运动能力影响与相关机理的研究进展与展望_张国海.pdf", "肌内效贴对网球运动员上肢力量和疲劳表现的影响_张燊.pdf", "肌内效贴对脑卒中后偏瘫患者患侧手肿胀的影响_张驰.pdf",
+        "肌内效贴对脑卒中患者肩关节半脱位后肩痛的疗效观察_施伯瀚.pdf", "肌内效贴布治疗脑卒中后肩手综合征患者疼痛肿胀疗效观察_秦宏.pdf", "肌内效贴扎配合理疗治疗运动员髌骨软化症短期疗效观察_肖冰.pdf",
+        "肌内效贴改善运动功能的临床研究现状与思考_余波.pdf", "肌内效贴贴扎疗法治疗姿势性腰痛的临床观察_韩国栋.pdf", "肌内效贴配合运动疗法治疗肌张力低下型脑瘫患儿的临床疗效观察_周文萍.pdf",
+        "软组织贴扎技术预防及治疗踝关节扭伤的临床应用进展_柴松.pdf"
+      ]
+      // 声明目录容器
+      let elNav = document.querySelector('nav')
+      // 声明PDF容器
+      let elCanvasContainer = document.querySelector('main')
+      // 声明返回按钮
+      let returnButton = document.querySelector('button')
+      // 循环渲染出目录
+      for (let file of files) {
+        let elSpan = document.createElement('span')
+        elSpan.innerText = file.split('_')[0]
+        elSpan.dataset.url = `./papers/${file}`
+        elSpan.onclick = e => loadPdf(e)
+        elNav.appendChild(elSpan)
+      }
+      // 给返回按钮绑定事件
+      returnButton.onclick = () => {
+        elNav.style.display = 'grid'
+        elCanvasContainer.style.display = 'none'
+        returnButton.style.display = 'none'
+      }
+      // 函数
+      function loadPdf(e) {
+        // 清空上一次渲染的canvas
+        while (elCanvasContainer.hasChildNodes()) {
+          elCanvasContainer.removeChild(elCanvasContainer.firstChild)
+        }
+        // 创建加载提示文字
+        let elLoading = document.createElement('span')
+        elLoading.className = 'loading'
+        elLoading.innerText = '加载中'
+        elCanvasContainer.appendChild(elLoading)
+        // 返回顶部
+        document.body.scrollTop = 0
+        // 改变相关元素样式
+        elNav.style.display = 'none'
+        elCanvasContainer.style.display = 'block'
+        returnButton.style.display = 'inline'
+        // 声明文件地址
+        let url = e.target.dataset.url
+        let loadingTask = pdfjsLib.getDocument({
+          url: url,
+          cMapUrl: './cmaps/',
+          cMapPacked: true
+        })
+        loadingTask.promise.then(pdf => {
+          // 清空加载中提示
+          while (elCanvasContainer.hasChildNodes()) {
+            elCanvasContainer.removeChild(elCanvasContainer.firstChild)
+          }
+          // 循环渲染出每一页
+          for (let i = 1; i <= pdf.numPages; i++) {
+            pdf.getPage(i).then(page => {
+              let scale = 1.5
+              let viewport = page.getViewport({
+                scale: scale
+              })
+              // Prepare canvas using PDF page dimensions
+              let elCanvas = document.createElement('canvas')
+              let context = elCanvas.getContext('2d')
+              elCanvas.height = viewport.height
+              elCanvas.width = viewport.width
+              // Render PDF page into canvas context
+              let renderContext = {
+                canvasContext: context,
+                viewport: viewport
+              }
+              page.render(renderContext)
+              elCanvasContainer.append(elCanvas)
+            })
+          }
+        })
+      }
+    </script>
+  </body>
+</html>
